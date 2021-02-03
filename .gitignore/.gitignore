@@ -1,0 +1,146 @@
+#include <dht.h>
+#include <SoftwareSerial.h>//gsm library
+SoftwareSerial mySerial(9,10);//txd & rxd
+dht DHT;
+
+
+int b,c,i,a,t,d,wb=0,w=0,x,y;//
+void setup() {
+  // put your setup code here, to run once:
+pinMode(A0,INPUT);//temp
+  pinMode(A1,INPUT);//measuring day and night
+  pinMode(A2,INPUT);//maesuring cows count using laser
+  pinMode(A3,INPUT);//moisture sensor
+  pinMode(A4,INPUT);//rain sensor
+mySerial.begin(9600);//gsm starts
+Serial.begin(9600);//monitor starts
+delay(100);
+}
+
+void loop() {
+  b=analogRead(A3);//moisture reading
+  c=analogRead(A4);//rain reading
+   DHT.read11(A0);
+   t=DHT.temperature;//temp reading
+  delay(1000);
+  // put your main code here, to run repeatedly:
+if(Serial.available()>0)//if messages avaiable
+switch(Serial.read())//read characters from monitor
+{
+  case 's'://if character entered 's'
+  mySerial.println("AT+CMGF=1");//set to sms mode
+  delay(1000);
+  mySerial.println("AT+CMGS=\"+917001365857\"\r");
+  
+  mySerial.println("Welcome to Advanced Agricultural system");
+for(i=1;i<=4;i++)
+  {
+    delay(4000);
+    d=analogRead(A1);
+    a=analogRead(A2);
+    delay(2000);
+    if(a>300)
+    {
+      if(d>700)
+      {Serial.println(a);
+        Serial.println(d);
+        Serial.println("no cow went out");
+        // put your main code here, to run repeatedly:
+      }
+      else{
+        w++;
+        Serial.println(a);
+        Serial.println(d);
+        Serial.println((String)"cow went out" +w);
+      }
+    }
+    else {
+      if(d>700)
+      {Serial.println(a);
+      Serial.println(b);
+        Serial.println("no cow returned");
+        // put your main code here, to run repeatedly:
+      }
+      else{
+        wb++;
+        Serial.println(a);
+        Serial.println(d);
+        Serial.println((String)"cow returned ="+wb);
+      }
+    }
+    
+  }
+  if(w==wb){
+  mySerial.println("all cows have returned");
+  
+  w=0;
+  wb=0;
+  }
+  else{
+  mySerial.println((String)" no of cows missing are:"+(w-wb));
+  w=0;
+  wb=0;
+  }
+  
+  if((b>580) && (c>400))  {//checks soil is dry and rain status
+
+    x=b-700;
+    y=c-350;
+    mySerial.println((String)"Soil moisture is"+x);
+   
+    mySerial.println("its not raining and soil is dry now");
+  }
+  else if(b>580)//checks soil is very dry or not
+  {  x=b-700;
+      mySerial.println((String)"Soil moisture is"+x);
+   
+        mySerial.println("soil is very dry & not fit for cultivation");
+  }
+  
+  else if((t<19) && (b>230 && b<580) && (c>230 && c<400))//tells if its time for rabi crops
+  {
+    x=b+400;
+    y=c+350;
+    mySerial.println((String)"temperature:"+t+"*C");
+    mySerial.println((String)"Soil moisture is"+x);
+    mySerial.println((String)"Rain is"+y+"mm");
+    mySerial.println("Time for cultivating rabi crops like wheat,barley,oats");
+  }
+  else if((t>19 && t<=30) && (c>230 && c<400) && (b>230 && b<580))//checks if its time for kharif crops
+  {
+    x=b+400;
+    y=c+350;
+    mySerial.println((String)"temperature:"+t+"*C");
+    mySerial.println((String)"Soil moisture is"+x);
+   mySerial.println((String)"Rain is"+y+"mm");
+    mySerial.println("Time for cultivating kharif crops like rice,sugarcane,soyabean");
+  }
+  
+  else if((t>29) && (b>230 && b<580) && (c<230))//checks if time for zaid crops
+  {
+    x=b+400;
+    y=c+350;
+    mySerial.println((String)"temperature:"+t+"*C");
+    mySerial.println((String)"Soil moisture is"+x);
+   mySerial.println((String)"Rain is"+y+"mm");
+    mySerial.println("Time for cultivation of zaid crops like cucumber,melons,maize");
+  }
+
+ else
+  {
+    mySerial.println("cant predict");
+  }
+  delay(100);
+  mySerial.println((char)26);
+  break;
+  case 'r':
+  mySerial.println("AT+CNMI=2,2,0,0,0");
+  
+  delay(1000);
+  break;
+}
+if(mySerial.available()>0)
+Serial.write(mySerial.read());//writes the message on monitor
+ 
+
+}
